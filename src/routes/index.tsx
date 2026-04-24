@@ -1,26 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { BananaHorrorGame } from "@/components/BananaHorrorGame";
 
 export const Route = createFileRoute("/")({
   component: Index,
+  head: () => ({
+    meta: [
+      { title: "髪の生えたばなな追想曲 — Banana Horror" },
+      {
+        name: "description",
+        content:
+          "ポップで不気味な2Dホラー。りんごを5つ集めて、髪の生えたバナナから逃げ延びろ。WebAudio合成によるサウンドスケープ。",
+      },
+      { property: "og:title", content: "髪の生えたばなな追想曲" },
+      {
+        property: "og:description",
+        content: "りんごを5つ集めて脱出するポップ・ホラーゲーム",
+      },
+    ],
+  }),
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
-
 function Index() {
-  return <PlaceholderIndex />;
+  return <BananaHorrorGame />;
 }
