@@ -260,6 +260,21 @@ const H = TILE * ROWS;
 
 type Vec = { x: number; y: number };
 
+export interface Difficulty {
+  id: string;
+  label: string;
+  apples: number;
+  enemySpeedMs: number; // lower = faster
+}
+
+export const DIFFICULTIES: Difficulty[] = [
+  { id: "easy", label: "イージー 🍮", apples: 3, enemySpeedMs: 480 },
+  { id: "normal", label: "ノーマル 🍌", apples: 5, enemySpeedMs: 320 },
+  { id: "hard", label: "ハード 🔥", apples: 7, enemySpeedMs: 220 },
+  { id: "nightmare", label: "ナイトメア 💀", apples: 10, enemySpeedMs: 150 },
+  { id: "custom", label: "カスタム ⚙️", apples: 5, enemySpeedMs: 320 },
+];
+
 interface GameState {
   player: Vec;
   enemy: Vec;
@@ -268,9 +283,10 @@ interface GameState {
   collected: number;
   status: "playing" | "won" | "lost";
   hidden: boolean;
+  totalApples: number;
 }
 
-function generateLevel(): GameState {
+function generateLevel(appleCount: number): GameState {
   const walls = new Set<string>();
   for (let x = 0; x < COLS; x++) {
     walls.add(`${x},0`);
@@ -288,7 +304,7 @@ function generateLevel(): GameState {
   }
 
   const freeCell = (): Vec => {
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 300; i++) {
       const x = 1 + Math.floor(Math.random() * (COLS - 2));
       const y = 1 + Math.floor(Math.random() * (ROWS - 2));
       if (!walls.has(`${x},${y}`)) return { x, y };
@@ -296,22 +312,22 @@ function generateLevel(): GameState {
     return { x: 1, y: 1 };
   };
 
-  const player = { x: 2, y: 2 };
-  walls.delete("2,2");
-  walls.delete("2,3");
-  walls.delete("3,2");
+  // Random player spawn
+  const player = freeCell();
+  walls.delete(`${player.x},${player.y}`);
 
   const apples: Vec[] = [];
-  while (apples.length < 5) {
+  let attempts = 0;
+  while (apples.length < appleCount && attempts++ < 1000) {
     const c = freeCell();
-    if (Math.abs(c.x - player.x) + Math.abs(c.y - player.y) < 5) continue;
+    if (Math.abs(c.x - player.x) + Math.abs(c.y - player.y) < 4) continue;
     if (apples.some((a) => a.x === c.x && a.y === c.y)) continue;
     apples.push(c);
   }
 
   let enemy = freeCell();
-  for (let i = 0; i < 50; i++) {
-    if (Math.abs(enemy.x - player.x) + Math.abs(enemy.y - player.y) >= 8) break;
+  for (let i = 0; i < 80; i++) {
+    if (Math.abs(enemy.x - player.x) + Math.abs(enemy.y - player.y) >= 7) break;
     enemy = freeCell();
   }
 
@@ -323,6 +339,7 @@ function generateLevel(): GameState {
     collected: 0,
     status: "playing",
     hidden: false,
+    totalApples: apples.length,
   };
 }
 
