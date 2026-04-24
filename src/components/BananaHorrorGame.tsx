@@ -412,16 +412,20 @@ export function BananaHorrorGame() {
     if (starting || started) return;
     setStarting(true);
     try {
+      const d = getActiveDifficulty();
+      stateRef.current = generateLevel(d.apples);
+      enemySpeedRef.current = d.enemySpeedMs;
       if (!engineRef.current) engineRef.current = new AudioEngine();
       await engineRef.current.start();
       setStarted(true);
-      // Defer speech to avoid blocking
       setTimeout(() => {
-        engineRef.current?.speak("バナナが、追いかけてくる。りんごを5つ集めなさい。");
+        engineRef.current?.speak(
+          `バナナが、追いかけてくる。りんごを${d.apples}つ集めなさい。`,
+        );
       }, 300);
     } catch (e) {
       console.error("start failed", e);
-      setStarted(true); // start game anyway
+      setStarted(true);
     } finally {
       setStarting(false);
     }
