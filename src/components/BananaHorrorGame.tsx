@@ -537,7 +537,7 @@ export function BananaHorrorGame() {
     return d;
   }, [difficultyId, customApples, customSpeed]);
 
-  const stateRef = useRef<GameState>(generateLevel(5));
+  const stateRef = useRef<GameState>(generateLevel(5, { banana: 1 }));
   const enemySpeedRef = useRef(320);
   const keysRef = useRef<Record<string, boolean>>({});
   const lastMoveRef = useRef(0);
@@ -561,14 +561,18 @@ export function BananaHorrorGame() {
     setStarting(true);
     try {
       const d = getActiveDifficulty();
-      stateRef.current = generateLevel(d.apples);
+      stateRef.current = generateLevel(d.apples, d.enemies);
       enemySpeedRef.current = d.enemySpeedMs;
       if (!engineRef.current) engineRef.current = new AudioEngine();
       await engineRef.current.start();
       setStarted(true);
+      const enemyTypes = (Object.keys(d.enemies) as EnemyKind[])
+        .filter((k) => (d.enemies[k] ?? 0) > 0)
+        .map((k) => ENEMY_LABEL[k])
+        .join("、");
       setTimeout(() => {
         engineRef.current?.speak(
-          `バナナが、追いかけてくる。りんごを${d.apples}つ集めなさい。`,
+          `${enemyTypes}が、追いかけてくる。りんごを${d.apples}つ集めなさい。`,
         );
       }, 300);
     } catch (e) {
@@ -667,27 +671,46 @@ export function BananaHorrorGame() {
           s.hidden = !!k["shift"];
         }
 
-        // Enemy
+        // Enemies — each enemy has its own movement timer based on its kind
         const baseSpeed = enemySpeedRef.current;
-        const speedMs = s.hidden ? baseSpeed * 2.2 : baseSpeed;
-        if (now - lastEnemyRef.current > speedMs) {
-          const step = nextStepToward(s.enemy, s.player, s.walls);
-          if (step) s.enemy = step;
-          lastEnemyRef.current = now;
-          if (s.enemy.x === s.player.x && s.enemy.y === s.player.y) {
-            s.status = "lost";
-            engineRef.current?.playGameOver();
-            engineRef.current?.speak("つかまえた。");
-            rerender();
+        for (const enemy of s.enemies) {
+          const kindMul = ENEMY_BASE_SPEED[enemy.kind];
+          const speedMs =
+            baseSpeed * kindMul * (s.hidden ? 2.0 : 1);
+          if (now - enemy.lastMoveAt > speedMs) {
+            const next = stepEnemy(enemy, s.player, s.walls, now);
+            enemy.pos = next;
+            enemy.lastMoveAt = now;
+            if (enemy.pos.x === s.player.x && enemy.pos.y === s.player.y) {
+              s.status = "lost";
+              engineRef.current?.playGameOver();
+              engineRef.current?.speak(
+                `${ENEMY_LABEL[enemy.kind]}に、つかまった。`,
+              );
+              rerender();
+              break;
+            }
           }
         }
 
-        // Proximity audio
-        const dx = s.enemy.x - s.player.x;
-        const dy = s.enemy.y - s.player.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const level = Math.max(0, 1 - dist / 12);
-        const pan = Math.max(-1, Math.min(1, dx / 7));
+        // Proximity audio — use closest enemy
+        let nearestDx = 99,
+          nearestDy = 99,
+          nearestDist = 99;
+        for (const enemy of s.enemies) {
+          const dx = enemy.pos.x - s.player.x;
+          const dy = enemy.pos.y - s.player.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearestDx = dx;
+            nearestDy = dy;
+          }
+        }
+        const level = Math.max(0, 1 - nearestDist / 12);
+        const pan = Math.max(-1, Math.min(1, nearestDx / 7));
+        // suppress unused dy warning
+        void nearestDy;
         engineRef.current?.setProximity(level * (s.hidden ? 0.4 : 1), pan);
       }
 
@@ -734,37 +757,142 @@ export function BananaHorrorGame() {
       ctx.fillRect(px - 4, py - 2, 2, 2);
       ctx.fillRect(px + 2, py - 2, 2, 2);
 
-      // Enemy: hairy banana (simplified)
-      const ex = s.enemy.x * TILE + TILE / 2;
-      const ey = s.enemy.y * TILE + TILE / 2;
-      ctx.save();
-      ctx.translate(ex, ey);
-      ctx.rotate(-0.4);
-      ctx.fillStyle = "#f4d03f";
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 11, 6, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // hair (fewer strands)
-      ctx.strokeStyle = "#1a1a1a";
-      ctx.lineWidth = 1;
-      for (let i = 0; i < 8; i++) {
-        const hx = -8 + i * 2;
-        ctx.beginPath();
-        ctx.moveTo(hx, -6);
-        ctx.lineTo(hx + 1, -11);
-        ctx.stroke();
-      }
-      ctx.fillStyle = "#fff";
-      ctx.beginPath();
-      ctx.arc(2, -1, 2, 0, Math.PI * 2);
-      ctx.arc(6, -1, 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#c0392b";
-      ctx.beginPath();
-      ctx.arc(2, -1, 1, 0, Math.PI * 2);
-      ctx.arc(6, -1, 1, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      // Enemies
+      s.enemies.forEach((enemy) => {
+        const ex = enemy.pos.x * TILE + TILE / 2;
+        const ey = enemy.pos.y * TILE + TILE / 2;
+        ctx.save();
+        ctx.translate(ex, ey);
+        if (enemy.kind === "banana") {
+          ctx.rotate(-0.4);
+          ctx.fillStyle = "#f4d03f";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 11, 6, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#1a1a1a";
+          ctx.lineWidth = 1;
+          for (let i = 0; i < 8; i++) {
+            const hx = -8 + i * 2;
+            ctx.beginPath();
+            ctx.moveTo(hx, -6);
+            ctx.lineTo(hx + 1, -11);
+            ctx.stroke();
+          }
+          ctx.fillStyle = "#fff";
+          ctx.beginPath();
+          ctx.arc(2, -1, 2, 0, Math.PI * 2);
+          ctx.arc(6, -1, 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#c0392b";
+          ctx.beginPath();
+          ctx.arc(2, -1, 1, 0, Math.PI * 2);
+          ctx.arc(6, -1, 1, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (enemy.kind === "apple") {
+          // Killer apple: green w/ angry face
+          ctx.fillStyle = "#7cb342";
+          ctx.beginPath();
+          ctx.arc(0, 0, 10, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#3d2817";
+          ctx.fillRect(-1, -12, 2, 4);
+          // angry eyes
+          ctx.strokeStyle = "#000";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-5, -3);
+          ctx.lineTo(-1, -1);
+          ctx.moveTo(5, -3);
+          ctx.lineTo(1, -1);
+          ctx.stroke();
+          // jagged mouth
+          ctx.fillStyle = "#000";
+          ctx.beginPath();
+          ctx.moveTo(-4, 4);
+          ctx.lineTo(-2, 2);
+          ctx.lineTo(0, 4);
+          ctx.lineTo(2, 2);
+          ctx.lineTo(4, 4);
+          ctx.lineTo(2, 6);
+          ctx.lineTo(0, 5);
+          ctx.lineTo(-2, 6);
+          ctx.closePath();
+          ctx.fill();
+        } else if (enemy.kind === "chicken") {
+          // Crazy chicken: white body, red comb, jittering
+          const jitter = (Math.random() - 0.5) * 1.5;
+          ctx.translate(jitter, jitter);
+          ctx.fillStyle = "#f5f5f5";
+          ctx.beginPath();
+          ctx.ellipse(0, 1, 10, 8, 0, 0, Math.PI * 2);
+          ctx.fill();
+          // head
+          ctx.beginPath();
+          ctx.arc(6, -4, 5, 0, Math.PI * 2);
+          ctx.fill();
+          // red comb
+          ctx.fillStyle = "#e74c3c";
+          ctx.beginPath();
+          ctx.arc(6, -8, 2, 0, Math.PI * 2);
+          ctx.arc(8, -7, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+          // beak
+          ctx.fillStyle = "#f39c12";
+          ctx.beginPath();
+          ctx.moveTo(10, -3);
+          ctx.lineTo(13, -2);
+          ctx.lineTo(10, -1);
+          ctx.closePath();
+          ctx.fill();
+          // crazy eye
+          ctx.fillStyle = "#fff";
+          ctx.beginPath();
+          ctx.arc(7, -5, 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#000";
+          ctx.beginPath();
+          ctx.arc(
+            7 + Math.cos(now / 80) * 0.8,
+            -5 + Math.sin(now / 80) * 0.8,
+            1,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+        } else if (enemy.kind === "fish") {
+          // Fast fish: blue body, sharp teeth
+          ctx.fillStyle = "#3498db";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 11, 5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          // tail
+          ctx.beginPath();
+          ctx.moveTo(-10, 0);
+          ctx.lineTo(-15, -5);
+          ctx.lineTo(-15, 5);
+          ctx.closePath();
+          ctx.fill();
+          // eye
+          ctx.fillStyle = "#fff";
+          ctx.beginPath();
+          ctx.arc(5, -1, 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#000";
+          ctx.beginPath();
+          ctx.arc(5, -1, 1, 0, Math.PI * 2);
+          ctx.fill();
+          // teeth
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(8, 2);
+          ctx.lineTo(9, 4);
+          ctx.lineTo(10, 2);
+          ctx.lineTo(11, 4);
+          ctx.stroke();
+        }
+        ctx.restore();
+      });
 
       // Vignette
       const grad = ctx.createRadialGradient(px, py, 30, px, py, 220);
@@ -781,7 +909,7 @@ export function BananaHorrorGame() {
 
   const reset = () => {
     const d = getActiveDifficulty();
-    stateRef.current = generateLevel(d.apples);
+    stateRef.current = generateLevel(d.apples, d.enemies);
     enemySpeedRef.current = d.enemySpeedMs;
     rerender();
   };
