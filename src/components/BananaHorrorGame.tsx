@@ -474,7 +474,7 @@ export function BananaHorrorGame() {
       s.apples.splice(idx, 1);
       s.collected++;
       engineRef.current?.playPickup();
-      if (s.collected >= 5) {
+      if (s.collected >= s.totalApples) {
         s.status = "won";
         engineRef.current?.playWin();
         engineRef.current?.speak("脱出、成功。");
