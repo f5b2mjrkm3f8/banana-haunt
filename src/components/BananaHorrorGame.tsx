@@ -260,24 +260,93 @@ const H = TILE * ROWS;
 
 type Vec = { x: number; y: number };
 
+export type EnemyKind = "banana" | "apple" | "chicken" | "fish";
+
+export interface Enemy {
+  kind: EnemyKind;
+  pos: Vec;
+  lastMoveAt: number;
+  // for fish: cooldown until next teleport
+  nextTeleport?: number;
+}
+
+const ENEMY_BASE_SPEED: Record<EnemyKind, number> = {
+  banana: 1.0, // 1.0x base
+  apple: 1.6, // slow patroller
+  chicken: 0.9, // jittery, slightly faster
+  fish: 0.55, // very fast
+};
+
+const ENEMY_LABEL: Record<EnemyKind, string> = {
+  banana: "🍌 髪バナナ",
+  apple: "🍏 殺人りんご",
+  chicken: "🐔 狂チキン",
+  fish: "🐟 高速サカナ",
+};
+
 export interface Difficulty {
   id: string;
   label: string;
   apples: number;
-  enemySpeedMs: number; // lower = faster
+  enemySpeedMs: number; // base for banana
+  enemies: Partial<Record<EnemyKind, number>>;
 }
 
 export const DIFFICULTIES: Difficulty[] = [
-  { id: "easy", label: "イージー 🍮", apples: 3, enemySpeedMs: 480 },
-  { id: "normal", label: "ノーマル 🍌", apples: 5, enemySpeedMs: 320 },
-  { id: "hard", label: "ハード 🔥", apples: 7, enemySpeedMs: 220 },
-  { id: "nightmare", label: "ナイトメア 💀", apples: 10, enemySpeedMs: 150 },
-  { id: "custom", label: "カスタム ⚙️", apples: 5, enemySpeedMs: 320 },
+  {
+    id: "easy",
+    label: "イージー 🍮",
+    apples: 3,
+    enemySpeedMs: 520,
+    enemies: { banana: 1 },
+  },
+  {
+    id: "normal",
+    label: "ノーマル 🍌",
+    apples: 5,
+    enemySpeedMs: 360,
+    enemies: { banana: 1, apple: 1 },
+  },
+  {
+    id: "hard",
+    label: "ハード 🔥",
+    apples: 7,
+    enemySpeedMs: 260,
+    enemies: { banana: 2, apple: 1, chicken: 1 },
+  },
+  {
+    id: "nightmare",
+    label: "ナイトメア 💀",
+    apples: 10,
+    enemySpeedMs: 180,
+    enemies: { banana: 2, apple: 2, chicken: 2, fish: 1 },
+  },
+  {
+    id: "hell",
+    label: "地獄 👹",
+    apples: 15,
+    enemySpeedMs: 130,
+    enemies: { banana: 3, apple: 3, chicken: 3, fish: 2 },
+  },
+  {
+    id: "chaos",
+    label: "カオス 🌀",
+    apples: 20,
+    enemySpeedMs: 100,
+    enemies: { banana: 4, apple: 4, chicken: 4, fish: 3 },
+  },
+  {
+    id: "custom",
+    label: "カスタム ⚙️",
+    apples: 5,
+    enemySpeedMs: 320,
+    enemies: { banana: 1 },
+  },
 ];
 
 interface GameState {
   player: Vec;
-  enemy: Vec;
+  enemies: Enemy[];
   apples: Vec[];
   walls: Set<string>;
   collected: number;
@@ -286,7 +355,10 @@ interface GameState {
   totalApples: number;
 }
 
-function generateLevel(appleCount: number): GameState {
+function generateLevel(
+  appleCount: number,
+  enemyCounts: Partial<Record<EnemyKind, number>>,
+): GameState {
   const walls = new Set<string>();
   for (let x = 0; x < COLS; x++) {
     walls.add(`${x},0`);
@@ -312,28 +384,34 @@ function generateLevel(appleCount: number): GameState {
     return { x: 1, y: 1 };
   };
 
-  // Random player spawn
   const player = freeCell();
   walls.delete(`${player.x},${player.y}`);
 
   const apples: Vec[] = [];
   let attempts = 0;
-  while (apples.length < appleCount && attempts++ < 1000) {
+  while (apples.length < appleCount && attempts++ < 1500) {
     const c = freeCell();
     if (Math.abs(c.x - player.x) + Math.abs(c.y - player.y) < 4) continue;
     if (apples.some((a) => a.x === c.x && a.y === c.y)) continue;
     apples.push(c);
   }
 
-  let enemy = freeCell();
-  for (let i = 0; i < 80; i++) {
-    if (Math.abs(enemy.x - player.x) + Math.abs(enemy.y - player.y) >= 7) break;
-    enemy = freeCell();
-  }
+  const enemies: Enemy[] = [];
+  (Object.keys(enemyCounts) as EnemyKind[]).forEach((kind) => {
+    const n = enemyCounts[kind] ?? 0;
+    for (let i = 0; i < n; i++) {
+      let pos = freeCell();
+      for (let j = 0; j < 60; j++) {
+        if (Math.abs(pos.x - player.x) + Math.abs(pos.y - player.y) >= 6) break;
+        pos = freeCell();
+      }
+      enemies.push({ kind, pos, lastMoveAt: 0 });
+    }
+  });
 
   return {
     player,
-    enemy,
+    enemies,
     apples,
     walls,
     collected: 0,
@@ -372,6 +450,76 @@ function nextStepToward(
     }
   }
   return null;
+}
+
+function randomFreeNeighbor(from: Vec, walls: Set<string>): Vec | null {
+  const dirs = [
+    { x: 1, y: 0 },
+    { x: -1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 0, y: -1 },
+  ];
+  const shuffled = dirs.sort(() => Math.random() - 0.5);
+  for (const d of shuffled) {
+    const nv = { x: from.x + d.x, y: from.y + d.y };
+    if (!walls.has(`${nv.x},${nv.y}`)) return nv;
+  }
+  return null;
+}
+
+function stepEnemy(
+  enemy: Enemy,
+  player: Vec,
+  walls: Set<string>,
+  now: number,
+): Vec {
+  const k = enemy.kind;
+  if (k === "banana") {
+    return nextStepToward(enemy.pos, player, walls) ?? enemy.pos;
+  }
+  if (k === "apple") {
+    // Mostly random patrol, 30% chance to chase
+    if (Math.random() < 0.3) {
+      return nextStepToward(enemy.pos, player, walls) ?? enemy.pos;
+    }
+    return randomFreeNeighbor(enemy.pos, walls) ?? enemy.pos;
+  }
+  if (k === "chicken") {
+    // Erratic: 60% random, 40% chase
+    if (Math.random() < 0.4) {
+      return nextStepToward(enemy.pos, player, walls) ?? enemy.pos;
+    }
+    return randomFreeNeighbor(enemy.pos, walls) ?? enemy.pos;
+  }
+  if (k === "fish") {
+    // Very fast chaser, occasionally teleports near player
+    if (
+      enemy.nextTeleport !== undefined &&
+      now > enemy.nextTeleport &&
+      Math.random() < 0.3
+    ) {
+      enemy.nextTeleport = now + 4000 + Math.random() * 3000;
+      // teleport to a free cell within 5 tiles of player
+      for (let i = 0; i < 30; i++) {
+        const tx =
+          player.x + Math.floor((Math.random() - 0.5) * 10);
+        const ty =
+          player.y + Math.floor((Math.random() - 0.5) * 10);
+        if (
+          tx > 0 &&
+          tx < COLS - 1 &&
+          ty > 0 &&
+          ty < ROWS - 1 &&
+          !walls.has(`${tx},${ty}`) &&
+          (Math.abs(tx - player.x) + Math.abs(ty - player.y)) >= 2
+        ) {
+          return { x: tx, y: ty };
+        }
+      }
+    }
+    return nextStepToward(enemy.pos, player, walls) ?? enemy.pos;
+  }
+  return enemy.pos;
 }
 
 export function BananaHorrorGame() {
