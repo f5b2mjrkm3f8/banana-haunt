@@ -839,15 +839,28 @@ export function BananaHorrorGame() {
               <div />
             </div>
 
-            {s.status !== "playing" && (
+            <div className="flex gap-2">
+              {s.status !== "playing" && (
+                <button
+                  onClick={reset}
+                  className="px-4 py-2 rounded font-bold"
+                  style={{ background: "#f4d03f", color: "#1a0a0a" }}
+                >
+                  ↻ もう一度
+                </button>
+              )}
               <button
-                onClick={reset}
-                className="px-4 py-2 rounded font-bold"
-                style={{ background: "#f4d03f", color: "#1a0a0a" }}
+                onClick={backToMenu}
+                className="px-4 py-2 rounded font-bold text-xs"
+                style={{
+                  background: "rgba(90,42,42,0.6)",
+                  color: "#f4d03f",
+                  border: "1px solid #5a2a2a",
+                }}
               >
-                ↻ もう一度
+                ← 難易度選択
               </button>
-            )}
+            </div>
           </div>
 
           {/* Mixer */}
