@@ -1,0 +1,61 @@
+name: Build Single HTML
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Create single-file HTML
+        run: |
+          mkdir -p single
+          cp dist/index.html single/index.html
+
+          # CSSをインライン化（<link>を置換）
+          for css in dist/assets/*.css; do
+            [ -e "$css" ] || continue
+            filename=$(basename "$css")
+            content=$(cat "$css")
+            sed -i "s|<link[^>]*$filename[^>]*>|<style>$content</style>|g" single/index.html
+          done
+
+          # JSをインライン化（</body>前に挿入）
+          for js in dist/assets/*.js; do
+            [ -e "$js" ] || continue
+            content=$(cat "$js")
+            sed -i "s|</body>|<script>$content</script></body>|g" single/index.html
+          done
+
+          # 画像をbase64化
+          for img in dist/assets/*.{png,jpg,jpeg,gif,svg,webp}; do
+            [ -e "$img" ] || continue
+            mime=$(file --mime-type -b "$img")
+            base64data=$(base64 -w 0 "$img")
+            filename=$(basename "$img")
+            sed -i "s|assets/$filename|data:$mime;base64,$base64data|g" single/index.html
+          done
+
+      - name: Upload single HTML artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: single-html
+          path: single/index.html
