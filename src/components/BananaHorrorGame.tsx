@@ -1028,7 +1028,7 @@ export function BananaHorrorGame() {
             fontFamily: "'Courier New', monospace",
           }}
         >
-          髪の生えたばなな追想曲
+          黄鬼
         </h1>
         <p className="text-xs mt-1 opacity-70">
           🍎 りんごを集めて脱出せよ 🍌
