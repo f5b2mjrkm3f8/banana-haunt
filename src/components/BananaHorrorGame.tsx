@@ -302,7 +302,7 @@ const ENEMY_BASE_SPEED: Record<EnemyKind, number> = {
 };
 
 const ENEMY_LABEL: Record<EnemyKind, string> = {
-  banana: "🍌 髪バナナ",
+  banana: "👹 黄鬼",
   apple: "🍏 殺人りんご",
   chicken: "🐔 狂チキン",
   fish: "🐟 高速サカナ",
@@ -335,7 +335,7 @@ export interface Difficulty {
 export const DIFFICULTIES: Difficulty[] = [
   { id: "lv1",  label: "Lv1 ほのぼの 🍮",     apples: 3,  enemySpeedMs: 600, enemies: { banana: 1 },                                  items: 4 },
   { id: "lv2",  label: "Lv2 やさしい 🌱",     apples: 4,  enemySpeedMs: 520, enemies: { banana: 1 },                                  items: 4 },
-  { id: "lv3",  label: "Lv3 おてがる 🍌",     apples: 5,  enemySpeedMs: 440, enemies: { banana: 1, apple: 1 },                        items: 3 },
+  { id: "lv3",  label: "Lv3 おてがる 👹",     apples: 5,  enemySpeedMs: 440, enemies: { banana: 1, apple: 1 },                        items: 3 },
   { id: "lv4",  label: "Lv4 ふつう 😬",        apples: 6,  enemySpeedMs: 380, enemies: { banana: 1, apple: 1 },                        items: 3 },
   { id: "lv5",  label: "Lv5 ちょい難 🔥",     apples: 7,  enemySpeedMs: 320, enemies: { banana: 2, apple: 1 },                        items: 3 },
   { id: "lv6",  label: "Lv6 ハード 🔥🔥",     apples: 8,  enemySpeedMs: 270, enemies: { banana: 2, apple: 1, chicken: 1 },             items: 2 },
@@ -1103,7 +1103,7 @@ export function BananaHorrorGame() {
               </div>
               <div>
                 <div className="flex justify-between">
-                  <span>🍌 ばななの速さ</span>
+                  <span>👹 黄鬼の速さ</span>
                   <span style={{ color: "#f4d03f" }}>
                     {Math.round((2000 / customSpeed) * 10) / 10}歩/秒
                   </span>
