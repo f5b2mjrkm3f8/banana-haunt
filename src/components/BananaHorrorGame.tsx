@@ -1222,40 +1222,45 @@ export function BananaHorrorGame() {
             </div>
           </div>
 
-          {/* Mixer + Item legend */}
-          <div className="p-3 rounded-lg border-2 font-mono text-xs w-full lg:w-56"
+          <details className="rounded-lg border-2 font-mono text-xs w-full lg:w-56"
             style={{ borderColor: "#5a2a2a", background: "rgba(0,0,0,0.4)" }}>
-            <h2 className="text-xs font-bold mb-2" style={{ color: "#f4d03f" }}>🎛 ミキサー</h2>
-            {([
-              ["master", "マスター"],
-              ["bgm", "BGM"],
-              ["drone", "ドローン"],
-              ["heart", "心拍"],
-              ["sfx", "SFX"],
-            ] as [keyof typeof mix, string][]).map(([k, label]) => (
-              <div key={k} className="mb-1.5">
-                <div className="flex justify-between text-[10px]">
-                  <span>{label}</span>
-                  <span>{Math.round(mix[k] * 100)}</span>
+            <summary className="cursor-pointer select-none px-3 py-2 text-xs font-bold flex items-center justify-between"
+              style={{ color: "#f4d03f" }}>
+              <span>🎛 ミキサー</span>
+              <span className="text-[10px] opacity-70">クリックで開閉</span>
+            </summary>
+            <div className="p-3 pt-0">
+              {([
+                ["master", "マスター"],
+                ["bgm", "BGM"],
+                ["drone", "ドローン"],
+                ["heart", "心拍"],
+                ["sfx", "SFX"],
+              ] as [keyof typeof mix, string][]).map(([k, label]) => (
+                <div key={k} className="mb-1.5">
+                  <div className="flex justify-between text-[10px]">
+                    <span>{label}</span>
+                    <span>{Math.round(mix[k] * 100)}</span>
+                  </div>
+                  <input type="range" min={0} max={1} step={0.01} value={mix[k]}
+                    onChange={(e) => setMix((m) => ({ ...m, [k]: parseFloat(e.target.value) }))}
+                    className="w-full accent-yellow-400" />
                 </div>
-                <input type="range" min={0} max={1} step={0.01} value={mix[k]}
-                  onChange={(e) => setMix((m) => ({ ...m, [k]: parseFloat(e.target.value) }))}
-                  className="w-full accent-yellow-400" />
-              </div>
-            ))}
-            <div className="mt-2 pt-2 border-t text-[10px] leading-relaxed" style={{ borderColor: "#5a2a2a" }}>
-              <div className="font-bold mb-1" style={{ color: "#f4d03f" }}>🎁 アイテム</div>
-              {(Object.keys(ITEM_LABEL) as ItemKind[]).map((k) => (
-                <div key={k}>{ITEM_LABEL[k]}</div>
               ))}
+              <div className="mt-2 pt-2 border-t text-[10px] leading-relaxed" style={{ borderColor: "#5a2a2a" }}>
+                <div className="font-bold mb-1" style={{ color: "#f4d03f" }}>🎁 アイテム</div>
+                {(Object.keys(ITEM_LABEL) as ItemKind[]).map((k) => (
+                  <div key={k}>{ITEM_LABEL[k]}</div>
+                ))}
+              </div>
+              <button
+                onClick={() => engineRef.current?.speak("テスト音声です。")}
+                className="mt-2 w-full py-1 rounded text-[10px] font-bold"
+                style={{ background: "#5a2a2a", color: "#f4d03f" }}>
+                🔊 TTSテスト
+              </button>
             </div>
-            <button
-              onClick={() => engineRef.current?.speak("テスト音声です。")}
-              className="mt-2 w-full py-1 rounded text-[10px] font-bold"
-              style={{ background: "#5a2a2a", color: "#f4d03f" }}>
-              🔊 TTSテスト
-            </button>
-          </div>
+          </details>
         </div>
       )}
     </div>
