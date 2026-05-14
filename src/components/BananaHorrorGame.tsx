@@ -632,10 +632,12 @@ export function BananaHorrorGame() {
     };
   }, []);
   const isLandscape = viewport.w > viewport.h;
-  const isTouchLandscape = isLandscape && viewport.h < 600;
-  // Reserve space for header/HUD/controls; in landscape, D-pad sits beside canvas.
-  const reservedH = isTouchLandscape ? 80 : 280;
-  const reservedW = isTouchLandscape ? 200 : 24;
+  const isTouch =
+    typeof window !== "undefined" &&
+    window.matchMedia("(hover: none)").matches;
+  // D-pad always on the right on touch devices
+  const reservedH = isLandscape ? 80 : 220;
+  const reservedW = isTouch ? 220 : 24;
   const aspect = W / H;
   const maxByH = Math.max(180, viewport.h - reservedH);
   const maxByW = Math.max(220, viewport.w - reservedW);
@@ -1228,7 +1230,7 @@ export function BananaHorrorGame() {
             </div>
 
             {/* Canvas + landscape D-pad row */}
-            <div className={`flex ${isTouchLandscape ? "flex-row" : "flex-col"} gap-3 items-center justify-center w-full`}>
+            <div className="flex flex-row gap-3 items-center justify-center w-full">
               <canvas
                 ref={canvasRef}
                 width={W}
