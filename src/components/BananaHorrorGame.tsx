@@ -1208,8 +1208,8 @@ export function BananaHorrorGame() {
         </div>
       ) : (
         <div className="flex flex-col lg:flex-row gap-3 items-start w-full max-w-5xl">
-          <div className="flex flex-col gap-2 flex-1 items-center">
-            <div className="flex flex-wrap justify-between gap-1 text-xs font-mono px-2 w-full" style={{ maxWidth: W }}>
+          <div className="flex flex-col gap-2 flex-1 items-center w-full">
+            <div className="flex flex-wrap justify-between gap-1 text-xs font-mono px-2 w-full" style={{ maxWidth: cw }}>
               <span>🍎 {s.collected}/{s.totalApples}</span>
               <span>💚 {s.lives}</span>
               <span style={{ color: "#f4d03f" }}>{activeDiff.label}</span>
@@ -1220,73 +1220,82 @@ export function BananaHorrorGame() {
               </span>
             </div>
             {/* Active buffs */}
-            <div className="flex gap-2 text-[10px] font-mono px-2 w-full" style={{ maxWidth: W }}>
+            <div className="flex gap-2 text-[10px] font-mono px-2 w-full" style={{ maxWidth: cw }}>
               {buffShield > 0 && <span className="text-cyan-300">🛡️ {(buffShield/1000).toFixed(1)}s</span>}
               {buffSlow > 0 && <span className="text-blue-300">⏱️ {(buffSlow/1000).toFixed(1)}s</span>}
               {buffStun > 0 && <span className="text-yellow-300">⚡ {(buffStun/1000).toFixed(1)}s</span>}
               {s.lastMessage && <span className="opacity-70 ml-auto">{s.lastMessage}</span>}
             </div>
-            <canvas
-              ref={canvasRef}
-              width={W}
-              height={H}
-              onTouchStart={(e) => {
-                const t = e.touches[0];
-                touchStartRef.current = { x: t.clientX, y: t.clientY };
-              }}
-              onTouchEnd={(e) => {
-                const start = touchStartRef.current;
-                if (!start) return;
-                const t = e.changedTouches[0];
-                const dx = t.clientX - start.x;
-                const dy = t.clientY - start.y;
-                const ax = Math.abs(dx), ay = Math.abs(dy);
-                if (Math.max(ax, ay) < 20) {
-                  // tap → toggle hide
-                  const st = stateRef.current;
-                  if (st.status === "playing") {
+
+            {/* Canvas + landscape D-pad row */}
+            <div className={`flex ${isTouchLandscape ? "flex-row" : "flex-col"} gap-3 items-center justify-center w-full`}>
+              <canvas
+                ref={canvasRef}
+                width={W}
+                height={H}
+                onTouchStart={(e) => {
+                  const t = e.touches[0];
+                  touchStartRef.current = { x: t.clientX, y: t.clientY };
+                }}
+                onTouchEnd={(e) => {
+                  const start = touchStartRef.current;
+                  if (!start) return;
+                  const t = e.changedTouches[0];
+                  const dx = t.clientX - start.x;
+                  const dy = t.clientY - start.y;
+                  const ax = Math.abs(dx), ay = Math.abs(dy);
+                  if (Math.max(ax, ay) < 20) {
+                    const st = stateRef.current;
+                    if (st.status === "playing") {
+                      st.hidden = !st.hidden;
+                      st.lastMessage = st.hidden ? "🫥 隠れた" : "🚶 出た";
+                      rerender();
+                    }
+                  } else if (ax > ay) {
+                    move(dx > 0 ? 1 : -1, 0);
+                  } else {
+                    move(0, dy > 0 ? 1 : -1);
+                  }
+                  touchStartRef.current = null;
+                }}
+                className="rounded border-2 touch-none block"
+                style={{
+                  borderColor: "#5a2a2a",
+                  imageRendering: "pixelated",
+                  width: cw,
+                  height: ch,
+                }}
+              />
+
+              {/* Touch D-pad */}
+              <div className="grid grid-cols-3 gap-2 select-none touch-none [@media(hover:hover)]:hidden">
+                <div />
+                <TouchBtn onPress={() => move(0, -1)} label="↑" />
+                <div />
+                <TouchBtn onPress={() => move(-1, 0)} label="←" />
+                <button
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    const st = stateRef.current;
+                    if (st.status !== "playing") return;
                     st.hidden = !st.hidden;
                     st.lastMessage = st.hidden ? "🫥 隠れた" : "🚶 出た";
                     rerender();
-                  }
-                } else if (ax > ay) {
-                  move(dx > 0 ? 1 : -1, 0);
-                } else {
-                  move(0, dy > 0 ? 1 : -1);
-                }
-                touchStartRef.current = null;
-              }}
-              className="rounded border-2 w-full h-auto touch-none"
-              style={{ borderColor: "#5a2a2a", imageRendering: "pixelated", maxWidth: W }}
-            />
-            <div className="text-[10px] opacity-60 font-mono px-2 text-center">
-              矢印/WASD・Shift：隠れる ／ スマホ：スワイプで移動・タップで隠れる
+                  }}
+                  className="w-16 h-16 rounded-lg border-2 text-xs font-bold active:scale-95 touch-none"
+                  style={{ background: "rgba(192,57,43,0.25)", borderColor: "#c0392b", color: "#f4d03f" }}
+                >
+                  {s.hidden ? "出る" : "隠れ"}
+                </button>
+                <TouchBtn onPress={() => move(1, 0)} label="→" />
+                <div />
+                <TouchBtn onPress={() => move(0, 1)} label="↓" />
+                <div />
+              </div>
             </div>
 
-            {/* Touch D-pad — visible on touch devices */}
-            <div className="grid grid-cols-3 gap-2 select-none touch-none [@media(hover:hover)]:hidden mt-2">
-              <div />
-              <TouchBtn onPress={() => move(0, -1)} label="↑" />
-              <div />
-              <TouchBtn onPress={() => move(-1, 0)} label="←" />
-              <button
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  const st = stateRef.current;
-                  if (st.status !== "playing") return;
-                  st.hidden = !st.hidden;
-                  st.lastMessage = st.hidden ? "🫥 隠れた" : "🚶 出た";
-                  rerender();
-                }}
-                className="w-16 h-16 rounded-lg border-2 text-xs font-bold active:scale-95 touch-none"
-                style={{ background: "rgba(192,57,43,0.25)", borderColor: "#c0392b", color: "#f4d03f" }}
-              >
-                {s.hidden ? "出る" : "隠れ"}
-              </button>
-              <TouchBtn onPress={() => move(1, 0)} label="→" />
-              <div />
-              <TouchBtn onPress={() => move(0, 1)} label="↓" />
-              <div />
+            <div className="text-[10px] opacity-60 font-mono px-2 text-center">
+              矢印/WASD・Shift：隠れる ／ スマホ：スワイプで移動・タップで隠れる
             </div>
 
             <div className="flex gap-2">
