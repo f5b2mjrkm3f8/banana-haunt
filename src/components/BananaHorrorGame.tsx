@@ -551,6 +551,34 @@ function stepEnemy(
   return enemy.pos;
 }
 
+function TouchBtn({ onPress, label }: { onPress: () => void; label: string }) {
+  const timer = useRef<number | null>(null);
+  const stop = () => {
+    if (timer.current !== null) {
+      clearInterval(timer.current);
+      timer.current = null;
+    }
+  };
+  return (
+    <button
+      onPointerDown={(e) => {
+        e.preventDefault();
+        (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+        onPress();
+        stop();
+        timer.current = window.setInterval(onPress, 150);
+      }}
+      onPointerUp={stop}
+      onPointerCancel={stop}
+      onPointerLeave={stop}
+      className="w-16 h-16 rounded-lg border-2 text-2xl font-bold active:scale-95 touch-none"
+      style={{ background: "rgba(244,208,63,0.18)", borderColor: "#f4d03f", color: "#f4d03f" }}
+    >
+      {label}
+    </button>
+  );
+}
+
 export function BananaHorrorGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<AudioEngine | null>(null);
