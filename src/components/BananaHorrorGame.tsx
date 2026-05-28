@@ -1302,7 +1302,10 @@ export function BananaHorrorGame() {
 
 
               {/* Touch D-pad */}
-              <div className={`grid grid-cols-3 select-none touch-none [@media(hover:hover)]:hidden ${isLandscape ? "gap-3" : "gap-2"}`}>
+              <div
+                className={`grid grid-cols-3 select-none touch-none [@media(hover:hover)]:hidden flex-none transition-[width] duration-150 ease-out ${isLandscape ? "gap-3" : "gap-2"}`}
+                style={{ width: dpadSlotW }}
+              >
                 <div />
                 <TouchBtn onPress={() => move(0, -1)} label="↑" className={`${isLandscape ? "w-[72px] h-[72px] text-2xl -m-1 p-1" : "w-14 h-14 text-lg"}`} />
                 <div />
