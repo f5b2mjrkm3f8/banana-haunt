@@ -1282,11 +1282,11 @@ export function BananaHorrorGame() {
               />
 
               {/* Touch D-pad */}
-              <div className="grid grid-cols-3 gap-2 select-none touch-none [@media(hover:hover)]:hidden">
+              <div className={`grid grid-cols-3 select-none touch-none [@media(hover:hover)]:hidden ${isLandscape ? "gap-3" : "gap-2"}`}>
                 <div />
-                <TouchBtn onPress={() => move(0, -1)} label="↑" />
+                <TouchBtn onPress={() => move(0, -1)} label="↑" className={`${isLandscape ? "w-[72px] h-[72px] text-2xl -m-1 p-1" : "w-14 h-14 text-lg"}`} />
                 <div />
-                <TouchBtn onPress={() => move(-1, 0)} label="←" />
+                <TouchBtn onPress={() => move(-1, 0)} label="←" className={`${isLandscape ? "w-[72px] h-[72px] text-2xl -m-1 p-1" : "w-14 h-14 text-lg"}`} />
                 <button
                   onPointerDown={(e) => {
                     e.preventDefault();
@@ -1296,14 +1296,14 @@ export function BananaHorrorGame() {
                     st.lastMessage = st.hidden ? "🫥 隠れた" : "🚶 出た";
                     rerender();
                   }}
-                  className="w-16 h-16 rounded-lg border-2 text-xs font-bold active:scale-95 touch-none"
+                  className={`rounded-lg border-2 text-xs font-bold active:scale-90 touch-none select-none flex items-center justify-center ${isLandscape ? "w-[72px] h-[72px] -m-1 p-1" : "w-14 h-14"}`}
                   style={{ background: "rgba(192,57,43,0.25)", borderColor: "#c0392b", color: "#f4d03f" }}
                 >
                   {s.hidden ? "出る" : "隠れ"}
                 </button>
-                <TouchBtn onPress={() => move(1, 0)} label="→" />
+                <TouchBtn onPress={() => move(1, 0)} label="→" className={`${isLandscape ? "w-[72px] h-[72px] text-2xl -m-1 p-1" : "w-14 h-14 text-lg"}`} />
                 <div />
-                <TouchBtn onPress={() => move(0, 1)} label="↓" />
+                <TouchBtn onPress={() => move(0, 1)} label="↓" className={`${isLandscape ? "w-[72px] h-[72px] text-2xl -m-1 p-1" : "w-14 h-14 text-lg"}`} />
                 <div />
               </div>
             </div>
