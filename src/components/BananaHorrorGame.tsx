@@ -1291,7 +1291,7 @@ export function BananaHorrorGame() {
                   }
                   touchStartRef.current = null;
                 }}
-                className="rounded border-2 touch-none block"
+                className="rounded border-2 touch-none block transition-[width,height] duration-150 ease-out"
                 style={{
                   borderColor: "#5a2a2a",
                   imageRendering: "pixelated",
@@ -1299,6 +1299,7 @@ export function BananaHorrorGame() {
                   height: ch,
                 }}
               />
+
 
               {/* Touch D-pad */}
               <div className={`grid grid-cols-3 select-none touch-none [@media(hover:hover)]:hidden ${isLandscape ? "gap-3" : "gap-2"}`}>
