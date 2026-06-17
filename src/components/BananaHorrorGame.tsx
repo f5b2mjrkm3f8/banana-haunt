@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import bgmFile from "../music/bgm.mp3";
 
 // ============================================================================
 // Lightweight Audio Engine
@@ -74,14 +75,15 @@ class AudioEngine {
 　startBGM() {
     if (!this.ctx || !this.bgmGain) return;
 
-    // 外部ファイルからAudioオブジェクトを作成
+    // 1. Audioオブジェクトを作成し、インポートしたファイルを設定
     const audio = new Audio(bgmFile);
     audio.loop = true;
     
-    // Web Audio APIのグラフに接続
+    // 2. Web Audio APIのノードに接続
     const source = this.ctx.createMediaElementSource(audio);
     source.connect(this.bgmGain);
     
+    // 3. 再生開始
     audio.play().catch(e => console.error("BGM再生失敗:", e));
   }
 
