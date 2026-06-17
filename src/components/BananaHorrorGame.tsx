@@ -71,17 +71,18 @@ class AudioEngine {
     }
   }
 
-  startBGM() {
+　startBGM() {
     if (!this.ctx || !this.bgmGain) return;
-    const freqs = [110, 164.81];
-    freqs.forEach((f, i) => {
-      const osc = this.ctx!.createOscillator();
-      osc.type = i === 0 ? "sine" : "triangle";
-      osc.frequency.value = f;
-      osc.detune.value = (Math.random() - 0.5) * 6;
-      osc.connect(this.bgmGain!);
-      osc.start();
-    });
+
+    // 外部ファイルからAudioオブジェクトを作成
+    const audio = new Audio(bgmFile);
+    audio.loop = true;
+    
+    // Web Audio APIのグラフに接続
+    const source = this.ctx.createMediaElementSource(audio);
+    source.connect(this.bgmGain);
+    
+    audio.play().catch(e => console.error("BGM再生失敗:", e));
   }
 
   startDrone() {
