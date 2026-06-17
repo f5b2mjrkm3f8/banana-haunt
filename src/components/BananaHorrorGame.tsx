@@ -75,15 +75,18 @@ class AudioEngine {
 　startBGM() {
     if (!this.ctx || !this.bgmGain) return;
 
-    // 1. Audioオブジェクトを作成し、インポートしたファイルを設定
     const audio = new Audio(bgmFile);
     audio.loop = true;
     
-    // 2. Web Audio APIのノードに接続
+    // AudioContextがresumeされていることを確認してから接続
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+
     const source = this.ctx.createMediaElementSource(audio);
     source.connect(this.bgmGain);
     
-    // 3. 再生開始
+    // ユーザー操作後であれば再生されるはず
     audio.play().catch(e => console.error("BGM再生失敗:", e));
   }
 
