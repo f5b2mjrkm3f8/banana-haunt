@@ -15,7 +15,8 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     target: "esnext",
-    assetsInlineLimit: 100000000,
+    // 100MBまでインライン化可能。MP3もこの対象になります
+    assetsInlineLimit: 1000000000,
     cssCodeSplit: false,
     rollupOptions: {
       input: "index.html",
